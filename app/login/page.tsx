@@ -35,12 +35,12 @@ export default function LoginPage() {
       <section className="login-card">
         <div className="brand"><span className="brand-mark">B</span><span>Biedronka HAKY Salary</span></div>
         <h1>Вход</h1>
-        <p className="muted">Теперь данные хранятся в облаке и привязаны к твоему аккаунту.</p>
+        <p className="muted">У каждого пользователя свой личный кабинет, смены и ставки.</p>
         <form onSubmit={signIn} className="form">
           <label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required /></label>
           <label>Пароль<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={6} required /></label>
           <button className="primary" disabled={busy}>{busy ? "Загрузка..." : "Войти"}</button>
-          <button className="secondary" type="button" onClick={signUp} disabled={busy}>Создать аккаунт</button>
+          <button className="secondary" type="button" onClick={signUp} disabled={busy}>Создать личный кабинет</button>
           {msg && <p className="notice">{msg}</p>}
         </form>
       </section>

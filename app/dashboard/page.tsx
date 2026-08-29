@@ -7,10 +7,16 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: shifts }, { data: settings }] = await Promise.all([
+  const [{ data: shifts }, { data: settings }, { data: profile }] = await Promise.all([
     supabase.from("shifts").select("*").order("work_date", { ascending: false }),
     supabase.from("user_settings").select("*").maybeSingle(),
+    supabase.from("profiles").select("*").maybeSingle(),
   ]);
 
-  return <DashboardClient initialShifts={shifts ?? []} initialSettings={settings} email={user.email ?? ""} />;
+  return <DashboardClient
+    initialShifts={shifts ?? []}
+    initialSettings={settings}
+    initialProfile={profile}
+    email={user.email ?? ""}
+  />;
 }
