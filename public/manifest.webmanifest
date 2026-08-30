@@ -1,0 +1,10 @@
+{
+  "name": "Biedronka HAKY Salary",
+  "short_name": "HAKY Salary",
+  "description": "Личный учёт смен, картонов и зарплаты",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#ffd400",
+  "lang": "ru"
+}

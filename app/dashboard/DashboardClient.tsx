@@ -36,7 +36,7 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
 
  function snapshot(){return{P01:settings.p01,P02:settings.p02,P03:settings.p03,P21:settings.p21,P28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus};}
  function calc(s:Shift|{hours:number;departments:Dept[];rates_snapshot?:Record<string,number>}){
-  const r: Record<string, number> = s.rates_snapshot || snapshot();
+  const r=s.rates_snapshot||snapshot();
   const cartonPay=s.departments.reduce((a,d)=>a+d.cartons*(r[d.department]||0),0);
   const hourlyPay=s.departments.length?0:Number(s.hours||0)*(r.hourly_rate||settings.hourly_rate);
   const housing=Number(s.hours||0)*(r.housing_bonus||settings.housing_bonus);
@@ -67,8 +67,40 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
   setMonth(date.slice(0,7)); resetForm();
  }
  async function deleteShift(id:string){if(!confirm("Удалить смену?"))return;const{error}=await supabase.from("shifts").delete().eq("id",id);if(error)setStatus(error.message);else{setShifts(shifts.filter(s=>s.id!==id));setStatus("Смена удалена.");}}
- async function saveSettings(){const {data:{user}}=await supabase.auth.getUser();if(!user)return setStatus('Нет авторизации.');const{error}=await supabase.from('user_settings').upsert({user_id:user.id,p01:settings.p01,p02:settings.p02,p03:settings.p03,p21:settings.p21,p28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus,salary_goal:settings.salary_goal},{onConflict:"user_id"});setStatus(error?error.message:"Личные настройки сохранены.");}
+ async function saveSettings(){const {data:{user}}=await supabase.auth.getUser();if(!user)return setStatus("Нет авторизации.");const{error}=await supabase.from("user_settings").upsert({user_id:user.id,p01:settings.p01,p02:settings.p02,p03:settings.p03,p21:settings.p21,p28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus,salary_goal:settings.salary_goal},{onConflict:"user_id"});setStatus(error?error.message:"Личные настройки сохранены.");}
  async function saveProfile(){const name=displayName.trim();if(!name)return setStatus("Укажи имя.");const{error}=await supabase.from("profiles").upsert({display_name:name},{onConflict:"user_id"});setStatus(error?error.message:"Профиль сохранён.");}
+
+ function exportCsv(){
+  const rows=[["Дата","Часы","Отделы","Картоны","Картоны PLN","Почасовая PLN","Жильё PLN","Итого PLN","Комментарий"]];
+  monthShifts.slice().reverse().forEach(s=>{
+   const c=calc(s);
+   rows.push([
+    s.work_date,
+    String(s.hours||0),
+    s.departments.map(d=>d.department).join("+")||"Только часы",
+    String(s.departments.reduce((a,d)=>a+d.cartons,0)),
+    c.cartonPay.toFixed(2),
+    c.hourlyPay.toFixed(2),
+    c.housing.toFixed(2),
+    c.total.toFixed(2),
+    s.comment||""
+   ]);
+  });
+  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(";")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=`Biedronka-Haky-Salary-${month}.csv`;a.click();URL.revokeObjectURL(url);
+  setStatus("Файл для Excel экспортирован.");
+ }
+ function printPdf(){window.print();}
+ const archive=useMemo(()=>{
+  const by:Record<string,{total:number,hours:number,cartons:number,shifts:number}>={};
+  shifts.forEach(s=>{
+   const k=ym(s.work_date);if(!by[k])by[k]={total:0,hours:0,cartons:0,shifts:0};
+   by[k].total+=calc(s).total;by[k].hours+=Number(s.hours||0);by[k].cartons+=s.departments.reduce((a,d)=>a+d.cartons,0);by[k].shifts+=1;
+  });
+  return Object.entries(by).sort((a,b)=>b[0].localeCompare(a[0]));
+ },[shifts,settings]);
  async function shareSite(){const url=window.location.origin;try{await navigator.clipboard.writeText(url);setStatus("Ссылка на сайт скопирована.");}catch{setStatus(url);}}
  async function signOut(){await supabase.auth.signOut();router.push("/login");router.refresh();}
 
@@ -97,7 +129,7 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
   </>}
 
   {tab==="history"&&<><div className="section-title"><h2>История и календарь</h2><span className="pill">{monthShifts.length} смен</span></div>{calendar()}<div className="section-title"><h2>Смены месяца</h2></div><div className="list">{monthShifts.map(shiftCard)}{!monthShifts.length&&<div className="empty-box">В этом месяце смен нет.</div>}</div>{status&&<p className="notice">{status}</p>}</>}
-  {tab==="stats"&&<><div className="section-title"><h2>Статистика</h2></div><section className="grid"><div className="card"><div className="stat-label">Заработано</div><div className="stat-value">{money(totals.total)}</div></div><div className="card"><div className="stat-label">Средняя смена</div><div className="stat-value">{money(monthShifts.length?totals.total/monthShifts.length:0)}</div></div><div className="card"><div className="stat-label">Лучший день</div><div className="stat-value small-value">{bestDay?dateText(bestDay[0]):"—"}</div><div className="muted">{bestDay?money(bestDay[1]):""}</div></div><div className="card"><div className="stat-label">До цели</div><div className="stat-value">{money(Math.max(0,settings.salary_goal-totals.total))}</div></div></section><div className="section-title"><h2>Отделы</h2></div><div className="card dept-stats">{deptStats.map(([d,v])=><div className="dept-stat" key={d}><div><strong>{d}</strong><span>{v.cartons.toLocaleString("pl-PL")} картонов</span></div><strong>{money(v.pay)}</strong></div>)}</div></>}
+  {tab==="stats"&&<><div className="section-title"><h2>Статистика</h2></div><section className="grid"><div className="card"><div className="stat-label">Заработано</div><div className="stat-value">{money(totals.total)}</div></div><div className="card"><div className="stat-label">Средняя смена</div><div className="stat-value">{money(monthShifts.length?totals.total/monthShifts.length:0)}</div></div><div className="card"><div className="stat-label">Лучший день</div><div className="stat-value small-value">{bestDay?dateText(bestDay[0]):"—"}</div><div className="muted">{bestDay?money(bestDay[1]):""}</div></div><div className="card"><div className="stat-label">До цели</div><div className="stat-value">{money(Math.max(0,settings.salary_goal-totals.total))}</div></div></section><div className="section-title"><h2>Отделы</h2></div><div className="card dept-stats">{deptStats.map(([d,v])=><div className="dept-stat" key={d}><div><strong>{d}</strong><span>{v.cartons.toLocaleString("pl-PL")} картонов</span></div><strong>{money(v.pay)}</strong></div>)}</div><div className="section-title"><h2>Экспорт</h2></div><div className="action-row export-actions"><button className="primary" onClick={exportCsv}>Экспорт в Excel</button><button className="secondary" onClick={printPdf}>Печать / PDF</button></div><div className="section-title"><h2>Архив зарплат</h2></div><div className="card archive-list">{archive.map(([k,v])=><button className="archive-row" key={k} onClick={()=>{setMonth(k);setTab("home");}}><div><strong>{monthTitle(k)}</strong><span>{v.shifts} смен · {v.hours} ч. · {v.cartons.toLocaleString("pl-PL")} картонов</span></div><strong>{money(v.total)}</strong></button>)}{!archive.length&&<div className="empty-box">Архив появится после первой смены.</div>}</div>{status&&<p className="notice">{status}</p>}</>}
   {tab==="settings"&&<><div className="section-title"><h2>Профиль</h2></div><div className="card settings-grid"><label>Имя<input value={displayName} onChange={e=>setDisplayName(e.target.value)}/></label><label>Email<input value={email} disabled/></label><button className="primary" onClick={saveProfile}>Сохранить профиль</button></div><div className="section-title"><h2>Мои ставки</h2></div><div className="card settings-grid">{depts.map(k=><label key={k}>{k}<input type="number" step=".0001" value={settings[keyMap[k]] as number} onChange={e=>setSettings({...settings,[keyMap[k]]:Number(e.target.value)})}/></label>)}<label>Часовая ставка<input type="number" step=".01" value={settings.hourly_rate} onChange={e=>setSettings({...settings,hourly_rate:Number(e.target.value)})}/></label><label>Жильё / час<input type="number" step=".01" value={settings.housing_bonus} onChange={e=>setSettings({...settings,housing_bonus:Number(e.target.value)})}/></label><label>Цель на месяц<input type="number" step="100" value={settings.salary_goal} onChange={e=>setSettings({...settings,salary_goal:Number(e.target.value)})}/></label><button className="primary" onClick={saveSettings}>Сохранить мои настройки</button></div>{status&&<p className="notice">{status}</p>}</>}
   <nav className="bottom-nav"><button className={tab==="home"?"active":""} onClick={()=>setTab("home")}><span>⌂</span>Главная</button><button className={tab==="history"?"active":""} onClick={()=>setTab("history")}><span>▦</span>История</button><button className="nav-add" onClick={openNew}><span>＋</span></button><button className={tab==="stats"?"active":""} onClick={()=>setTab("stats")}><span>↗</span>Статистика</button><button className={tab==="settings"?"active":""} onClick={()=>setTab("settings")}><span>⚙</span>Настройки</button></nav>
  </main>;
