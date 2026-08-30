@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <main className="login-shell">
       <section className="login-card">
-        <div className="brand"><span className="brand-mark">B</span><span>Biedronka HAKY Salary</span></div>
+        <div className="brand"><span className="brand-mark">B</span><span>Biedronka Salary</span></div>
         <h1>Вход</h1>
         <p className="muted">У каждого пользователя свой личный кабинет, смены и ставки.</p>
         <form onSubmit={signIn} className="form">

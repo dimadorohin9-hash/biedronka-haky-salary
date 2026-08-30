@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Biedronka HAKY Salary",
+  title: "Biedronka Salary",
   description: "Персональный трекер зарплаты",
   manifest: "/manifest.webmanifest",
 };

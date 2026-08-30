@@ -1,4 +1,4 @@
-# Biedronka HAKY Salary — v0.8.0
+# Biedronka Salary — v0.8.0
 
 Новое:
 - Архив зарплат по месяцам.

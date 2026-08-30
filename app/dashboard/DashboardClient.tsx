@@ -115,7 +115,7 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
  }
 
  return <main className="app-shell">
-  <header className="topbar"><div><div className="brand"><span className="brand-mark">B</span><span>Biedronka HAKY Salary</span></div><div className="muted">Пользователь: {displayName||email}</div></div><button className="secondary compact" onClick={signOut}>Выйти</button></header>
+  <header className="topbar"><div><div className="brand"><span className="brand-mark">B</span><span>Biedronka Salary</span></div><div className="muted">Пользователь: {displayName||email}</div></div><button className="secondary compact" onClick={signOut}>Выйти</button></header>
   <div className="month-switch"><button onClick={()=>{const[y,m]=month.split("-").map(Number);const d=new Date(y,m-2,1);setMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`)}}>‹</button><strong>{monthTitle(month)}</strong><button onClick={()=>{const[y,m]=month.split("-").map(Number);const d=new Date(y,m,1);setMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`)}}>›</button></div>
 
   {tab==="home"&&<>
