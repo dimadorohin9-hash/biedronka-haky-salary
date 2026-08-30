@@ -67,7 +67,7 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
   setMonth(date.slice(0,7)); resetForm();
  }
  async function deleteShift(id:string){if(!confirm("Удалить смену?"))return;const{error}=await supabase.from("shifts").delete().eq("id",id);if(error)setStatus(error.message);else{setShifts(shifts.filter(s=>s.id!==id));setStatus("Смена удалена.");}}
- async function saveSettings(){const{error}=await supabase.from("user_settings").upsert({p01:settings.p01,p02:settings.p02,p03:settings.p03,p21:settings.p21,p28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus,salary_goal:settings.salary_goal},{onConflict:"user_id"});setStatus(error?error.message:"Личные настройки сохранены.");}
+ async function saveSettings(){const {data:{user}}=await supabase.auth.getUser();if(!user)return setStatus('Нет авторизации.');const{error}=await supabase.from('user_settings').upsert({user_id:user.id,p01:settings.p01,p02:settings.p02,p03:settings.p03,p21:settings.p21,p28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus,salary_goal:settings.salary_goal},{onConflict:"user_id"});setStatus(error?error.message:"Личные настройки сохранены.");}
  async function saveProfile(){const name=displayName.trim();if(!name)return setStatus("Укажи имя.");const{error}=await supabase.from("profiles").upsert({display_name:name},{onConflict:"user_id"});setStatus(error?error.message:"Профиль сохранён.");}
  async function shareSite(){const url=window.location.origin;try{await navigator.clipboard.writeText(url);setStatus("Ссылка на сайт скопирована.");}catch{setStatus(url);}}
  async function signOut(){await supabase.auth.signOut();router.push("/login");router.refresh();}
