@@ -36,7 +36,7 @@ export default function DashboardClient({initialShifts,initialSettings,initialPr
 
  function snapshot(){return{P01:settings.p01,P02:settings.p02,P03:settings.p03,P21:settings.p21,P28:settings.p28,hourly_rate:settings.hourly_rate,housing_bonus:settings.housing_bonus};}
  function calc(s:Shift|{hours:number;departments:Dept[];rates_snapshot?:Record<string,number>}){
-  const r=s.rates_snapshot||snapshot();
+  const r: Record<string, number> = s.rates_snapshot || snapshot();
   const cartonPay=s.departments.reduce((a,d)=>a+d.cartons*(r[d.department]||0),0);
   const hourlyPay=s.departments.length?0:Number(s.hours||0)*(r.hourly_rate||settings.hourly_rate);
   const housing=Number(s.hours||0)*(r.housing_bonus||settings.housing_bonus);
